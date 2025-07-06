@@ -26,8 +26,8 @@ void loop() {
   myServo.writeMicroseconds(pulse);
 
   unsigned long end = millis();
-  Serial.println(end - start);
-  // Serial.println(1);
+  // Serial.println(end - start);
+  Serial.println(1);
 
   delay(15); // servo pulse refresh rate
 }
