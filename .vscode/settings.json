@@ -1,0 +1,7 @@
+{
+  "arduino.useArduinoCli": true,
+  "arduino.commandPath": "arduino-cli",
+  "arduino.fqbn": "arduino:avr:leonardo",
+  "arduino.defaultBaudRate": 9600,
+  "arduino.logLevel": "info"
+}
