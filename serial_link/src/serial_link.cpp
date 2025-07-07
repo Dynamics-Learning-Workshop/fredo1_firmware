@@ -13,6 +13,11 @@
 #include <algorithm>
 
 #include <mutex>
+#include <sys/socket.h>
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <cstring> 
+
 
 // serial-related
 volatile std::sig_atomic_t stop_flag;
@@ -174,16 +179,52 @@ void serial_thread_func()
 // tcp-related
 void tcp_thread_func()
 {
+    const char* broadcast_ip = "192.168.1.255";
+    const int broadcast_port = 60000;
+
+    int sock = socket(AF_INET, SOCK_DGRAM, 0);
+    if (sock < 0) {
+        perror("socket creation failed");
+    }
+
+    // Enable broadcast option
+    int broadcastEnable = 1;
+    if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable)) < 0) {
+        perror("setsockopt (SO_BROADCAST) failed");
+        close(sock);
+    }
+
+    // Setup broadcast address struct
+    sockaddr_in broadcastAddr;
+    memset(&broadcastAddr, 0, sizeof(broadcastAddr));
+    broadcastAddr.sin_family = AF_INET;
+    broadcastAddr.sin_port = htons(broadcast_port);
+    if (inet_aton(broadcast_ip, &broadcastAddr.sin_addr) == 0) {
+        std::cerr << "Invalid broadcast IP address\n";
+        close(sock);
+    }
+
     while (!stop_flag)
     {
         pots_raw_mutex.lock();
         std::cout << "TCP THREAD HERE"<<std::endl;
         std::cout<<pots_raw[0]<<std::endl;
+        std::string message_str = std::to_string(pots_raw[0]);
+        const char* message = message_str.c_str();
         // pots_raw[0] = message_from_down[2];
         // pots_raw[1] = message_from_down[3];
         // pots_raw[2] = message_from_down[4];
-        pots_raw_mutex.unlock();
-        std::this_thread::sleep_for(std::chrono::milliseconds(2000));  
+        pots_raw_mutex.unlock(); 
+
+        
+        ssize_t sent = sendto(sock, message, strlen(message), 0,
+                              (sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
+        if (sent < 0) {
+            perror("sendto failed");
+            break;
+        }
+
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));  
     }
     
     
