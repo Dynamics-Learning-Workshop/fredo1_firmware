@@ -1,0 +1,1 @@
+arduino-cli compile --fqbn arduino:avr:leonardo "$1/$1.ino" 

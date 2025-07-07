@@ -7,8 +7,20 @@
 #include <chrono>
 #include <thread> 
 
+#include <csignal>
+
+volatile std::sig_atomic_t stop_flag;
+
+void handle_sigint(int signum);
+void joint_callback();
+void joint_spinner();
+void process_pot(const char buf[]);
+void process_pwm();
+
+static bool system_start = false;
+
 int main() {
-    // Open for read and write
+
     int fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY | O_NONBLOCK); 
     if (fd == -1) {
         std::cerr << "Failed to open serial port\n";
@@ -38,50 +50,74 @@ int main() {
     tty.c_cflag &= ~CRTSCTS;
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) {
-        std::cerr << "Failed to set terminal attributes\n";
+        std::cout << "FAILED TO OPEN /DEV/TTYACM0..." << std::endl;
         close(fd);
         return 1;
     }
 
-    // Main loop
     char buf[100];
     std::string input;
-
     auto ctrl_lastrequest = std::chrono::high_resolution_clock::now();
 
+    std::signal(SIGINT, handle_sigint);
 
-    while (true) {
-        // Read from Arduino
+    while (!stop_flag) 
+    {
         int n = read(fd, buf, sizeof(buf) - 1);
-        if (n > 0) {
+
+        if (n > 0) 
+        {
             buf[n] = 0;
-            std::cout << "Received: " << buf << std::endl;
-        } else if (n == 0 || (errno == EAGAIN || errno == EWOULDBLOCK)) {
-            // No data available, continue
-        } else {
+            process_pot(buf);
+        } 
+        else if (n == 0 || (errno == EAGAIN || errno == EWOULDBLOCK))         
+            continue;
+        else 
+        {
             perror("read error");
             break;
         }
-
+        
         auto dt_raw = std::chrono::high_resolution_clock::now() - ctrl_lastrequest;
         auto dt = std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(dt_raw);
         double elapsed_ms = dt.count();
 
-
-        if (elapsed_ms > 20)
+        if (elapsed_ms > 20 && system_start)
         {
-            std::cout<<elapsed_ms<<std::endl;
             input = "1006\n";
             write(fd, input.c_str(), input.size());
-            std::cout << "Sent: " << input << std::endl;   
-            
 
             ctrl_lastrequest = std::chrono::high_resolution_clock::now();
         }             
         
-        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+        // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 
+    std::cout<<"END!"<<std::endl;
     close(fd);
+
+    
     return 0;
 }
+
+
+void handle_sigint(int signum)
+{
+    stop_flag = 1;
+}
+
+void joint_callback()
+{
+
+}
+
+void joint_spinner()
+{
+
+}
+
+void process_pot(const char buf[])
+{
+    std::cout << "Received here in small function: " << buf << std::endl;
+}
+

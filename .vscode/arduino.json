@@ -1,6 +1,0 @@
-{
-    "port": "/dev/ttyACM0",
-    "board": "arduino:avr:leonardo",
-    "programmer": "arduinoisp",
-    "sketch": "test/test.ino"
-}
