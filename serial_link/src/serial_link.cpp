@@ -12,6 +12,9 @@
 #include <sstream>
 #include <algorithm>
 
+#include <mutex>
+
+// serial-related
 volatile std::sig_atomic_t stop_flag;
 
 void handle_sigint(int signum);
@@ -27,20 +30,21 @@ static double dt_ms;
 static int t_ard_ms;
 static int fsm;
 static int pots_raw[3];
+static std::mutex pots_raw_mutex;
 
-int main() {
-
+void serial_thread_func()
+{
     int fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY | O_NONBLOCK); 
     if (fd == -1) {
         std::cerr << "Failed to open serial port\n";
-        return 1;
+        // return 1;
     }
 
     termios tty{};
     if (tcgetattr(fd, &tty) != 0) {
         std::cerr << "Failed to get terminal attributes\n";
         close(fd);
-        return 1;
+        // return 1;
     }
 
     cfsetispeed(&tty, B9600);
@@ -61,14 +65,14 @@ int main() {
     if (tcsetattr(fd, TCSANOW, &tty) != 0) {
         std::cout << "FAILED TO OPEN /DEV/TTYACM0..." << std::endl;
         close(fd);
-        return 1;
+        // return 1;
     }
 
     char buf[100];
     std::string input;
     auto ctrl_lastrequest = std::chrono::high_resolution_clock::now();
 
-    std::signal(SIGINT, handle_sigint);
+    
 
     fsm = 0;
 
@@ -165,6 +169,35 @@ int main() {
     
     std::cout<<"FREDO1 SHUTDOWN...\n\n"<<std::endl;
     close(fd);
+}
+
+// tcp-related
+void tcp_thread_func()
+{
+    while (!stop_flag)
+    {
+        pots_raw_mutex.lock();
+        std::cout << "TCP THREAD HERE"<<std::endl;
+        std::cout<<pots_raw[0]<<std::endl;
+        // pots_raw[0] = message_from_down[2];
+        // pots_raw[1] = message_from_down[3];
+        // pots_raw[2] = message_from_down[4];
+        pots_raw_mutex.unlock();
+        std::this_thread::sleep_for(std::chrono::milliseconds(2000));  
+    }
+    
+    
+
+}
+
+int main() {
+    std::signal(SIGINT, handle_sigint);
+    
+    std::thread serial_thread(serial_thread_func);    
+    std::thread tcp_thread(tcp_thread_func);
+    
+    serial_thread.join();
+    tcp_thread.join();
 
     
     return 0;
@@ -199,19 +232,22 @@ void joints_callback(const char buf[])
             // true
         )
         {
-            std::cout<<token<< " ";
+            // std::cout<<token<< " ";
             message_from_down.emplace_back(std::stod(token));
         }
     }
         
             
-    std::cout <<std::endl << message_from_down.size()<<std::endl;
+    // std::cout <<std::endl << message_from_down.size()<<std::endl;
 
     t_ard_ms = message_from_down[0];
     fsm = message_from_down[1];
+
+    pots_raw_mutex.lock();
     pots_raw[0] = message_from_down[2];
     pots_raw[1] = message_from_down[3];
     pots_raw[2] = message_from_down[4];
+    pots_raw_mutex.unlock();
 
     return;
 }

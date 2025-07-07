@@ -57,6 +57,9 @@
     "cinttypes": "cpp",
     "typeinfo": "cpp",
     "csignal": "cpp",
-    "sstream": "cpp"
+    "sstream": "cpp",
+    "condition_variable": "cpp",
+    "cstring": "cpp",
+    "mutex": "cpp"
   }
 }

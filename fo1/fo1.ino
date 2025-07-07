@@ -68,7 +68,8 @@ void loop() {
     {
         servo1.writeMicroseconds(joint1_pulse);
         servo2.writeMicroseconds(joint2_pulse);
-        servo3.writeMicroseconds(joint3_pulse);        
+        servo3.writeMicroseconds(joint3_pulse);       
+        ctrl_lastrequest = millis(); 
     }
 
     // this is for sending to upper floor
@@ -93,6 +94,7 @@ void loop() {
                 joint1_pulse + "-" +
                 joint2_pulse + "-" +
                 joint3_pulse + "-" +
+                system_wake +
                 "\n";
         }            
         else
