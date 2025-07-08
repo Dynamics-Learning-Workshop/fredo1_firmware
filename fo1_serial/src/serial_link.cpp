@@ -21,8 +21,6 @@
 
 #include "../include/com_util.h"
 
-
-
 // serial-related
 volatile std::sig_atomic_t stop_flag;
 
@@ -40,55 +38,49 @@ static int t_ard_ms;
 static int fsm;
 static int pots_raw[3];
 static std::mutex pots_raw_mutex;
-
+static std::mutex pulse_raw_mutex;
 
 void serial_thread_func();
 
-// tcp-related
-static std::unique_ptr<com_util<fredo_msg>> feedback_advertiser;
+static std::unique_ptr<com_util<fredo_msg>> feedback_advertiser, pulse_subscriber;
+void pub_thread_func();
+static int mode;
 
-void tcp_thread_func()
+int main(int argc, char* argv[])
 {
-    while (!stop_flag)
+    bool lala = (std::string(argv[1]) == "TWIN");
+    std::cout << argv[1] << lala  << std::endl;
+    
+    if (std::string(argv[1]) == "CTRL")
     {
-        pots_raw_mutex.lock();
-        std::cout << "UDP LALA THREAD HERE"<<std::endl;
-
-        fredo_msg msg_lala;
-        // auto now = std::chrono::high_resolution_clock::now();
-        auto now = std::chrono::high_resolution_clock::now();
-        auto duration_since_epoch = now.time_since_epoch();
-        double ms = chrono_to_double(std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch));
-
-        msg_lala.time = ms;
-        msg_lala.pot_val_1 = pots_raw[0];
-        msg_lala.pot_val_2 = pots_raw[1];
-        msg_lala.pot_val_3 = pots_raw[2];
-        pots_raw_mutex.unlock(); 
-        
-        // std::cout<<message_str<<std::endl;
-        if (!feedback_advertiser->pub_msg(msg_lala)) 
-        {
-            std::cerr << "MSG SENT FAILED...EXITING" << std::endl;
-            break;
-        }
-        
-        // try to control at 100 Hz
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));  
-    }        
-}
-
-int main() {
-    using namespace std;
+        mode = CTRL_MODE;
+        std::cout << "CTRL MODE" << std::endl;
+    }
+    else if (std::string(argv[1]) == "TWIN")
+    {
+        mode = TWIN_MODE;
+        std::cout << "TWIN MODE" << std::endl;
+    }
+    else if (std::string(argv[1]) == "CALI")
+    {
+        mode = CALI_MODE;
+        std::cout << "CALI MODE" << std::endl;
+    }
+    else
+    {
+        std::cerr << "PLS INPUT MODE" << std::endl;
+        return 0;
+    }
 
     std::signal(SIGINT, handle_sigint);
-    feedback_advertiser = std::make_unique<com_util<fredo_msg>>("192.168.1.255", 60000, PUB);
-    
+    feedback_advertiser = std::make_unique<com_util<fredo_msg>>("192.168.1.255", POT_RAW_TOPIC, PUB);
+    pulse_subscriber = std::make_unique<com_util<fredo_msg>>("192.168.1.255", PULSE_RAW_TOPIC, SUB);
+
     std::thread serial_thread(serial_thread_func);    
-    std::thread tcp_thread(tcp_thread_func);
+    std::thread pub_thread(pub_thread_func);
     
     serial_thread.join();
-    tcp_thread.join();
+    pub_thread.join();
 
     
     return 0;
@@ -224,7 +216,7 @@ void serial_thread_func()
         dt_ms = chrono_to_double(std::chrono::high_resolution_clock::now() - ctrl_lastrequest);
     
 
-        if (!system_on && fsm == 1)
+        if (!system_on && fsm != 0)
         {
             std::cout<<"FREDO1 STARTED...\n\n";
             system_on = true;
@@ -234,21 +226,41 @@ void serial_thread_func()
         {
         case 0:
             // IDLE
-            input = "7777\n";
+            switch (mode)
+            {
+            case CTRL_MODE:
+                input = "7777\n";
+                break;
+
+            case TWIN_MODE:
+                input = "9999\n";
+                break;
+
+            case CALI_MODE:
+                input = "1010\n";
+                break;
+            
+            default:
+                break;
+            }
             write(fd, input.c_str(), input.size());
             break;
 
         case 1:
             // CTRL
             input = "600-700-800\n";
+            pulse_raw_mutex.lock();
+            std::cout<<"hi" << std::endl;
+            std::cout << pulse_subscriber->data.time << std::endl;;
+            pulse_raw_mutex.unlock();
             // do ctrl shit
             write(fd, input.c_str(), input.size());
             break;
 
         case 2:
-            // calibrate
-            input = "\n";
-            // do ctrl shit
+            // twinning
+            // input = "9999\n";
+            // only twinning
             // write(fd, input.c_str(), input.size());
             break;
         
@@ -297,4 +309,33 @@ void serial_thread_func()
     close(fd);
 }
 
+void pub_thread_func()
+{
+    while (!stop_flag)
+    {
+        pots_raw_mutex.lock();
+        // std::cout << "UDP LALA THREAD HERE"<<std::endl;
 
+        fredo_msg msg_lala;
+        // auto now = std::chrono::high_resolution_clock::now();
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration_since_epoch = now.time_since_epoch();
+        double ms = chrono_to_double(std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch));
+
+        msg_lala.time = ms;
+        msg_lala.pot_val_1 = pots_raw[0];
+        msg_lala.pot_val_2 = pots_raw[1];
+        msg_lala.pot_val_3 = pots_raw[2];
+        pots_raw_mutex.unlock(); 
+        
+        // std::cout<<message_str<<std::endl;
+        if (!feedback_advertiser->pub_msg(msg_lala)) 
+        {
+            std::cerr << "MSG SENT FAILED...EXITING" << std::endl;
+            break;
+        }
+        
+        // try to control at 100 Hz
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));  
+    }        
+}

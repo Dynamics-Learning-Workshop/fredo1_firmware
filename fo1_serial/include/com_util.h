@@ -5,13 +5,11 @@
 #include <cstring> 
 #include <iostream>
 #include <thread>
-#include "fredo_msg.h"
+#include "fredo.h"
 #include <mutex>
 
 #define SUB 0
 #define PUB 1
-
-
 
 template<typename T>
 class com_util

@@ -147,7 +147,7 @@ void com_util<T>::set_subscriber()
 
         if (len == sizeof(T)) {
             // Use buffer directly
-            std::cout << "Received value: " << buffer.pot_val_1 << std::endl;  // works if T is printable
+            // std::cout << "Received value: " << buffer.pot_val_1 << std::endl;  // works if T is printable
         }
     }
 }
