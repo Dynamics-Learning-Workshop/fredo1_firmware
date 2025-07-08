@@ -4,7 +4,9 @@
 #include <unistd.h>
 #include <cstring> 
 #include <iostream>
+#include <thread>
 #include "fredo_msg.h"
+#include <mutex>
 
 #define SUB 0
 #define PUB 1
@@ -23,9 +25,13 @@ private:
     sockaddr_in serverAddr;
     sockaddr_in clientAddr;
     socklen_t clientAddrLen;
+    T buffer;
+
+    std::mutex buffer_mutex;
 
 public:
     // objects
+    T data;
 
     // funcs
     com_util(
@@ -34,10 +40,10 @@ public:
         int type_of_com
     );
     bool pub_msg(const T& message);
-    bool sub_msg(const T& message);
 
     void set_advertiser();
     void set_subscriber();
+    T callback();
     ~com_util()
     {
         close(sock);

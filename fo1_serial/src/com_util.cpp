@@ -12,10 +12,27 @@ listen_port_(port)
 {
     using namespace std;
 
+    auto mainloop = [this]() mutable
+    {
+        while (true)
+        {
+            buffer_mutex.lock();
+            data = buffer;
+            // std::cout<<"hi"<<std::endl;
+            buffer_mutex.unlock();
+        }
+    };
+
     if (type_of_com == PUB)
         set_advertiser();
     else if (type_of_com == SUB)
-        set_subscriber();
+    {
+        std::thread sub_thread(&com_util::set_subscriber, this);
+        // std::thread main_thread(mainloop);
+        sub_thread.detach();
+        // main_thread.detach();
+    }
+        
 }
 
 template<typename T>
@@ -115,7 +132,6 @@ void com_util<T>::set_subscriber()
     }
     
     clientAddrLen = sizeof(clientAddr);
-    T buffer;
 
     while (true) 
     {
@@ -127,6 +143,8 @@ void com_util<T>::set_subscriber()
             (sockaddr*)&clientAddr, &clientAddrLen
         );
 
+        data = buffer;
+
         if (len == sizeof(T)) {
             // Use buffer directly
             std::cout << "Received value: " << buffer.pot_val_1 << std::endl;  // works if T is printable
@@ -134,4 +152,9 @@ void com_util<T>::set_subscriber()
     }
 }
 
+template<typename T>
+T com_util<T>::callback()
+{
+    return buffer;
+}
 template class com_util<fredo_msg>;

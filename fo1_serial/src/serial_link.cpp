@@ -55,8 +55,15 @@ void tcp_thread_func()
         std::cout << "UDP LALA THREAD HERE"<<std::endl;
 
         fredo_msg msg_lala;
+        // auto now = std::chrono::high_resolution_clock::now();
+        auto now = std::chrono::high_resolution_clock::now();
+        auto duration_since_epoch = now.time_since_epoch();
+        double ms = chrono_to_double(std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch));
+
+        msg_lala.time = ms;
         msg_lala.pot_val_1 = pots_raw[0];
-        // std::string message_str = std::to_string(pots_raw[0]);
+        msg_lala.pot_val_2 = pots_raw[1];
+        msg_lala.pot_val_3 = pots_raw[2];
         pots_raw_mutex.unlock(); 
         
         // std::cout<<message_str<<std::endl;
@@ -74,16 +81,10 @@ void tcp_thread_func()
 int main() {
     using namespace std;
 
-    cout<<1;
     std::signal(SIGINT, handle_sigint);
-
-    cout<<2;
     feedback_advertiser = std::make_unique<com_util<fredo_msg>>("192.168.1.255", 60000, PUB);
     
-    cout<<3;
     std::thread serial_thread(serial_thread_func);    
-    
-    cout<<4;
     std::thread tcp_thread(tcp_thread_func);
     
     serial_thread.join();

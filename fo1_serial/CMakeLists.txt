@@ -9,15 +9,7 @@ add_executable(serial_link
     src/com_util.cpp
 )
 
-
-
 add_executable(serial_com 
     src/serial_com.cpp
-    src/com_util.cpp
-)
-
-
-add_executable(serial_test
-    src/serial_test.cpp
     src/com_util.cpp
 )
