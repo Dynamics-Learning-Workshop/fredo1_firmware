@@ -17,6 +17,10 @@
 #include <arpa/inet.h>
 #include <unistd.h>
 #include <cstring> 
+#include <memory>
+
+#include "../include/com_util.h"
+
 
 
 // serial-related
@@ -36,6 +40,124 @@ static int t_ard_ms;
 static int fsm;
 static int pots_raw[3];
 static std::mutex pots_raw_mutex;
+
+
+void serial_thread_func();
+
+// tcp-related
+static std::unique_ptr<com_util<fredo_msg>> feedback_advertiser;
+
+void tcp_thread_func()
+{
+    while (!stop_flag)
+    {
+        pots_raw_mutex.lock();
+        std::cout << "UDP LALA THREAD HERE"<<std::endl;
+
+        fredo_msg msg_lala;
+        msg_lala.pot_val_1 = pots_raw[0];
+        // std::string message_str = std::to_string(pots_raw[0]);
+        pots_raw_mutex.unlock(); 
+        
+        // std::cout<<message_str<<std::endl;
+        if (!feedback_advertiser->pub_msg(msg_lala)) 
+        {
+            std::cerr << "MSG SENT FAILED...EXITING" << std::endl;
+            break;
+        }
+        
+        // try to control at 100 Hz
+        std::this_thread::sleep_for(std::chrono::milliseconds(10));  
+    }        
+}
+
+int main() {
+    using namespace std;
+
+    cout<<1;
+    std::signal(SIGINT, handle_sigint);
+
+    cout<<2;
+    feedback_advertiser = std::make_unique<com_util<fredo_msg>>("192.168.1.255", 60000, PUB);
+    
+    cout<<3;
+    std::thread serial_thread(serial_thread_func);    
+    
+    cout<<4;
+    std::thread tcp_thread(tcp_thread_func);
+    
+    serial_thread.join();
+    tcp_thread.join();
+
+    
+    return 0;
+}
+
+
+void handle_sigint(int signum)
+{
+    stop_flag = 1;
+}
+
+void joint_spinner()
+{
+
+}
+
+void joints_callback(const char buf[])
+{
+    message_from_down.clear();
+    std::string str(buf);         
+    std::stringstream ss(str);           
+    std::string token;
+
+    while (std::getline(ss, token, '-')) 
+    {
+        token.erase(std::remove_if(token.begin(), token.end(),
+                           [](unsigned char c) { return c == '\n' || c == '\r'; }),
+            token.end());
+
+        if (
+            is_digits(token)
+            // true
+        )
+        {
+            // std::cout<<token<< " ";
+            message_from_down.emplace_back(std::stod(token));
+        }
+    }
+        
+            
+    // std::cout <<std::endl << message_from_down.size()<<std::endl;
+
+    t_ard_ms = message_from_down[0];
+    fsm = message_from_down[1];
+
+    pots_raw_mutex.lock();
+    pots_raw[0] = message_from_down[2];
+    pots_raw[1] = message_from_down[3];
+    pots_raw[2] = message_from_down[4];
+    pots_raw_mutex.unlock();
+
+    return;
+}
+
+bool is_digits(const std::string& s) {
+    try {
+        size_t idx;
+        std::stod(s, &idx);  // try parsing to double
+        return idx == s.size(); // ensure full string was parsed
+    } catch (...) {
+        return false;
+    }
+}
+
+
+double chrono_to_double(const std::chrono::nanoseconds time_chrono)
+{
+    // here we return milli sec in double
+    return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(time_chrono).count();
+}
 
 void serial_thread_func()
 {
@@ -76,8 +198,6 @@ void serial_thread_func()
     char buf[100];
     std::string input;
     auto ctrl_lastrequest = std::chrono::high_resolution_clock::now();
-
-    
 
     fsm = 0;
 
@@ -174,140 +294,6 @@ void serial_thread_func()
     
     std::cout<<"FREDO1 SHUTDOWN...\n\n"<<std::endl;
     close(fd);
-}
-
-// tcp-related
-void tcp_thread_func()
-{
-    const char* broadcast_ip = "192.168.1.255";
-    const int broadcast_port = 60000;
-
-    int sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
-        perror("socket creation failed");
-    }
-
-    // Enable broadcast option
-    int broadcastEnable = 1;
-    if (setsockopt(sock, SOL_SOCKET, SO_BROADCAST, &broadcastEnable, sizeof(broadcastEnable)) < 0) {
-        perror("setsockopt (SO_BROADCAST) failed");
-        close(sock);
-    }
-
-    // Setup broadcast address struct
-    sockaddr_in broadcastAddr;
-    memset(&broadcastAddr, 0, sizeof(broadcastAddr));
-    broadcastAddr.sin_family = AF_INET;
-    broadcastAddr.sin_port = htons(broadcast_port);
-    if (inet_aton(broadcast_ip, &broadcastAddr.sin_addr) == 0) {
-        std::cerr << "Invalid broadcast IP address\n";
-        close(sock);
-    }
-
-    while (!stop_flag)
-    {
-        pots_raw_mutex.lock();
-        std::cout << "TCP THREAD HERE"<<std::endl;
-        std::cout<<pots_raw[0]<<std::endl;
-        std::string message_str = std::to_string(pots_raw[0]);
-        const char* message = message_str.c_str();
-        // pots_raw[0] = message_from_down[2];
-        // pots_raw[1] = message_from_down[3];
-        // pots_raw[2] = message_from_down[4];
-        pots_raw_mutex.unlock(); 
-
-        
-        ssize_t sent = sendto(sock, message, strlen(message), 0,
-                              (sockaddr*)&broadcastAddr, sizeof(broadcastAddr));
-        if (sent < 0) {
-            perror("sendto failed");
-            break;
-        }
-
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));  
-    }
-    
-    
-
-}
-
-int main() {
-    std::signal(SIGINT, handle_sigint);
-    
-    std::thread serial_thread(serial_thread_func);    
-    std::thread tcp_thread(tcp_thread_func);
-    
-    serial_thread.join();
-    tcp_thread.join();
-
-    
-    return 0;
-}
-
-
-void handle_sigint(int signum)
-{
-    stop_flag = 1;
-}
-
-void joint_spinner()
-{
-
-}
-
-void joints_callback(const char buf[])
-{
-    message_from_down.clear();
-    std::string str(buf);         
-    std::stringstream ss(str);           
-    std::string token;
-
-    while (std::getline(ss, token, '-')) 
-    {
-        token.erase(std::remove_if(token.begin(), token.end(),
-                           [](unsigned char c) { return c == '\n' || c == '\r'; }),
-            token.end());
-
-        if (
-            is_digits(token)
-            // true
-        )
-        {
-            // std::cout<<token<< " ";
-            message_from_down.emplace_back(std::stod(token));
-        }
-    }
-        
-            
-    // std::cout <<std::endl << message_from_down.size()<<std::endl;
-
-    t_ard_ms = message_from_down[0];
-    fsm = message_from_down[1];
-
-    pots_raw_mutex.lock();
-    pots_raw[0] = message_from_down[2];
-    pots_raw[1] = message_from_down[3];
-    pots_raw[2] = message_from_down[4];
-    pots_raw_mutex.unlock();
-
-    return;
-}
-
-bool is_digits(const std::string& s) {
-    try {
-        size_t idx;
-        std::stod(s, &idx);  // try parsing to double
-        return idx == s.size(); // ensure full string was parsed
-    } catch (...) {
-        return false;
-    }
-}
-
-
-double chrono_to_double(const std::chrono::nanoseconds time_chrono)
-{
-    // here we return milli sec in double
-    return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(time_chrono).count();
 }
 
 
