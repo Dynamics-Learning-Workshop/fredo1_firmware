@@ -95,11 +95,6 @@ void com_util<T>::set_subscriber()
         return;
     }
 
-    memset(&serverAddr, 0, sizeof(serverAddr));
-    serverAddr.sin_family = AF_INET;
-    serverAddr.sin_addr.s_addr = INADDR_ANY;
-    serverAddr.sin_port = htons(listen_port_);
-
     int reuse = 1;
     if (
         setsockopt(
@@ -116,6 +111,11 @@ void com_util<T>::set_subscriber()
         return;
     }
 
+    memset(&serverAddr, 0, sizeof(serverAddr));
+    serverAddr.sin_family = AF_INET;
+    serverAddr.sin_addr.s_addr = INADDR_ANY;
+    serverAddr.sin_port = htons(listen_port_);
+
     if (
         bind(
             sock, 
@@ -124,30 +124,64 @@ void com_util<T>::set_subscriber()
         ) < 0
     ) 
     {
-        std::cerr << "BINDING FAILED";
+        std::cerr << "BINDING FAILED" << std::endl;
         close(sock);
         return;
     }
-    
+
+    int flags = fcntl(sock, F_GETFL, 0);
+    if (flags == -1 || fcntl(sock, F_SETFL, flags | O_NONBLOCK) == -1) {
+        std::cerr << "FAILED TO SET NONBLOCKING MODE" << std::endl;
+        close(sock);
+        return;
+    }
+
     clientAddrLen = sizeof(clientAddr);
 
     while (true) 
     {
-        ssize_t len = recvfrom(
-            sock, 
-            &buffer, 
-            1024 - 1, 
-            0,
-            (sockaddr*)&clientAddr, &clientAddrLen
-        );
-        
-        if (len == sizeof(T)) 
+        T latest_data;
+        bool new_data_received = false;
+
+        // draining here
+        while (true)
         {
+            ssize_t len = recvfrom(
+                sock, 
+                &buffer, 
+                sizeof(T), 
+                0,
+                (sockaddr*)&clientAddr, 
+                &clientAddrLen
+            );
+
+            if (len == -1) 
+            {
+                if (errno == EWOULDBLOCK || errno == EAGAIN)
+                    break;
+                else 
+                {
+                    std::cerr << "RECVFROM ERROR" << std::endl;
+                    break;
+                }
+            } 
+            else if (len == sizeof(T)) 
+            {
+                latest_data = buffer;
+                new_data_received = true;
+            }
+        }
+
+        if (new_data_received) 
+        {
+            // std::lock_guard<std::mutex> lock(buffer_mutex);
             buffer_mutex.lock();
-            data = buffer;
+            data = latest_data;
             buffer_mutex.unlock();
             sub_init = true;
         }
+
+        // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 

@@ -7,6 +7,9 @@
 #include <thread>
 #include "fredo.h"
 #include <mutex>
+#include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 #define SUB 0
 #define PUB 1
