@@ -10,6 +10,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <chrono>
 
 #define SUB 0
 #define PUB 1
@@ -44,7 +45,7 @@ public:
 
     void set_advertiser();
     void set_subscriber();
-    T callback();
+    std::pair<bool, T> callback();
     ~com_util()
     {
         close(sock);

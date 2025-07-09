@@ -9,53 +9,133 @@
 #include <chrono>
 #include <thread>
 #include <mutex>
+#include <vector>
+#include <deque>
 
 static std::unique_ptr<com_util<fredo_msg>> 
-    feedback_subscriber, 
-    pulse_publisher, 
-    joint_cmd_subscriber,
-    joint_deg_publisher;
+    joint_cmd_publisher;
 
 volatile std::sig_atomic_t stop_flag;
 static fredo_msg raw_from_down;
 static std::mutex sub_mutex;
+static fredo_msg q_cmd;
+static double alpha = 0.1;
+static std::deque<fredo_msg> q_state_buffer;
 
-void mainloop()
-{
-    while (true)
-    {
-        // std::cout<<1<<std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
-
-        sub_mutex.lock();
-        std::cout<<feedback_subscriber->callback().joint1<<std::endl;
-        std::cout<<feedback_subscriber->callback().joint2<<std::endl;
-        std::cout<<feedback_subscriber->callback().joint3<<std::endl<<std::endl;
-        sub_mutex.unlock();
-        
-        // fredo_msg msg_lala;
-        // msg_lala.time = 100600;
-        // msg_lala.joint1 = 100;
-        // msg_lala.joint2 = 200;
-        // msg_lala.joint3 = 300;
-        
-        // pulse_publisher->pub_msg(msg_lala);
-    }    
-}
+void mainloop();
+void get_joint_deg();
+void set_joint_deg();
 
 int main() 
 {
-    // ctrl related
-    pulse_publisher = std::make_unique<com_util<fredo_msg>>("192.168.1.255", PULSE_RAW_TOPIC, PUB);
-    joint_cmd_subscriber = std::make_unique<com_util<fredo_msg>>("192.168.1.255", JOINT_CMD_TOPIC, SUB);
-    
-    // feedback related
-    feedback_subscriber = std::make_unique<com_util<fredo_msg>>("192.168.1.255", POT_RAW_TOPIC, SUB);
-    joint_deg_publisher = std::make_unique<com_util<fredo_msg>>("192.168.1.255", JOINT_DEG_TOPIC, PUB);
+    joint_cmd_publisher = std::make_unique<com_util<fredo_msg>>("192.168.1.255", JOINT_CMD_TOPIC, PUB);
 
+    q_cmd.joint1 = -40;
+    q_cmd.joint2 = -50;
+    q_cmd.joint3 = 90;
     // threading
     std::thread lala_thread(mainloop);
     lala_thread.join();    
     
     return 0;
+}
+
+void mainloop()
+{
+    const double step_deg = 0.5;  // degrees per step
+    const int delay_ms = 25;
+    const double alpha = 0.1;
+
+    // Initialize joint angles
+    q_cmd.joint1 = 0;
+    q_cmd.joint2 = 0;
+    q_cmd.joint3 = 0;
+
+    fredo_msg q_cmd_prev = q_cmd;
+
+    // Sweep joint1 from 0 to -180, then back to 0
+    for (double j1 = 0; j1 >= -180.0; j1 -= step_deg) {
+        double target_joint1 = j1;
+        q_cmd.joint1 = alpha * target_joint1 + (1.0 - alpha) * q_cmd_prev.joint1;
+        q_cmd_prev.joint1 = q_cmd.joint1;
+
+        auto now = std::chrono::high_resolution_clock::now();
+        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        joint_cmd_publisher->pub_msg(q_cmd);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+    for (double j1 = -180.0; j1 <= 0.0; j1 += step_deg) {
+        double target_joint1 = j1;
+        q_cmd.joint1 = alpha * target_joint1 + (1.0 - alpha) * q_cmd_prev.joint1;
+        q_cmd_prev.joint1 = q_cmd.joint1;
+
+        auto now = std::chrono::high_resolution_clock::now();
+        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        joint_cmd_publisher->pub_msg(q_cmd);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+
+    // Sweep joint2: 0 → -90 → 90 → 0
+    for (double j2 = 0; j2 >= -90.0; j2 -= step_deg) {
+        double target_joint2 = j2;
+        q_cmd.joint2 = alpha * target_joint2 + (1.0 - alpha) * q_cmd_prev.joint2;
+        q_cmd_prev.joint2 = q_cmd.joint2;
+
+        auto now = std::chrono::high_resolution_clock::now();
+        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        joint_cmd_publisher->pub_msg(q_cmd);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+    for (double j2 = -90.0; j2 <= 90.0; j2 += step_deg) {
+        double target_joint2 = j2;
+        q_cmd.joint2 = alpha * target_joint2 + (1.0 - alpha) * q_cmd_prev.joint2;
+        q_cmd_prev.joint2 = q_cmd.joint2;
+
+        auto now = std::chrono::high_resolution_clock::now();
+        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        joint_cmd_publisher->pub_msg(q_cmd);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+    for (double j2 = 90.0; j2 >= 0.0; j2 -= step_deg) {
+        double target_joint2 = j2;
+        q_cmd.joint2 = alpha * target_joint2 + (1.0 - alpha) * q_cmd_prev.joint2;
+        q_cmd_prev.joint2 = q_cmd.joint2;
+
+        auto now = std::chrono::high_resolution_clock::now();
+        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        joint_cmd_publisher->pub_msg(q_cmd);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+
+    // Sweep joint3: 0 → -90 → 90 → 0
+    for (double j3 = 0; j3 >= -90.0; j3 -= step_deg) {
+        double target_joint3 = j3;
+        q_cmd.joint3 = alpha * target_joint3 + (1.0 - alpha) * q_cmd_prev.joint3;
+        q_cmd_prev.joint3 = q_cmd.joint3;
+
+        auto now = std::chrono::high_resolution_clock::now();
+        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        joint_cmd_publisher->pub_msg(q_cmd);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+    for (double j3 = -90.0; j3 <= 90.0; j3 += step_deg) {
+        double target_joint3 = j3;
+        q_cmd.joint3 = alpha * target_joint3 + (1.0 - alpha) * q_cmd_prev.joint3;
+        q_cmd_prev.joint3 = q_cmd.joint3;
+
+        auto now = std::chrono::high_resolution_clock::now();
+        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        joint_cmd_publisher->pub_msg(q_cmd);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
+    for (double j3 = 90.0; j3 >= 0.0; j3 -= step_deg) {
+        double target_joint3 = j3;
+        q_cmd.joint3 = alpha * target_joint3 + (1.0 - alpha) * q_cmd_prev.joint3;
+        q_cmd_prev.joint3 = q_cmd.joint3;
+
+        auto now = std::chrono::high_resolution_clock::now();
+        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        joint_cmd_publisher->pub_msg(q_cmd);
+        std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
+    }
 }

@@ -161,7 +161,7 @@ void com_util<T>::set_subscriber()
                     break;
                 else 
                 {
-                    std::cerr << "RECVFROM ERROR" << std::endl;
+                    // std::cerr << "RECVFROM ERROR" << std::endl;
                     break;
                 }
             } 
@@ -174,24 +174,36 @@ void com_util<T>::set_subscriber()
 
         if (new_data_received) 
         {
-            // std::lock_guard<std::mutex> lock(buffer_mutex);
             buffer_mutex.lock();
             data = latest_data;
             buffer_mutex.unlock();
             sub_init = true;
         }
 
+        // std::cout<<sub_init<<std::endl;
+
         // std::this_thread::sleep_for(std::chrono::milliseconds(1));
     }
 }
 
 template<typename T>
-T com_util<T>::callback()
+std::pair<bool, T> com_util<T>::callback()
 {
+    using namespace std::chrono;
 
     buffer_mutex.lock();
-    T temp = buffer;
+    T data = buffer;  // Ensure 'data' is declared
     buffer_mutex.unlock();
-    return temp;
+
+    auto now = high_resolution_clock::now();
+    double now_ms = duration<double, std::milli>(now.time_since_epoch()).count();
+
+    double delay = now_ms - data.time;
+
+    if (delay < 10)
+        return {true, data};
+    else
+        return {false, data};
 }
+
 template class com_util<fredo_msg>;

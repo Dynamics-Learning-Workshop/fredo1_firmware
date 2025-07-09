@@ -1,3 +1,8 @@
+/*
+    1. listen pot_val, talk joint_angle
+    2. listen joint_cmd_angle, talk pulse
+*/
+
 #include <iostream>
 #include <cstring>
 #include <sys/socket.h>
@@ -24,6 +29,7 @@ static std::mutex sub_mutex;
 static fredo_msg q_state, q_state_prev, q_cmd;
 static double alpha = 0.1;
 static std::deque<fredo_msg> q_state_buffer;
+static std::pair<bool, fredo_msg> q_state_callback_obj, q_cmd_callback_obj;
 
 void mainloop();
 void get_joint_deg();
@@ -48,10 +54,10 @@ int main()
 
 void mainloop()
 {
-    while (true)
+    while (true) // running at 100 Hz
     {
-        joint_deg_publisher->pub_msg(q_state);
         get_joint_deg();
+        set_joint_deg();
         std::this_thread::sleep_for(std::chrono::milliseconds(10)); 
     }    
 }
@@ -60,7 +66,13 @@ void get_joint_deg()
 {
     if (!feedback_subscriber->sub_init)
         return;
-    q_state = feedback_subscriber->callback();
+    
+    q_state_callback_obj = feedback_subscriber->callback();
+    
+    if (!q_state_callback_obj.first)
+        return;
+
+    q_state = q_state_callback_obj.second;
     
     q_state.joint1 = (-1) * ((q_state.joint1 - 64) / (604 - 64) * 180.0 * (-1) + 180.0);
     q_state.joint2 = (q_state.joint2 - 86) / (614 - 86) * 180.0 * (-1) + 90.0;
@@ -94,18 +106,25 @@ void get_joint_deg()
     q_state.joint3 = alpha * q_temp.joint3 / buf_size + (1 - alpha) * q_state_prev.joint3;
 
     q_state_prev = q_state;
+
+    joint_deg_publisher->pub_msg(q_state);
 }
 
 void set_joint_deg()
 {
-    q_cmd = joint_cmd_subscriber->callback();
-    // map q_cmd from deg to pulse
-    // here....
-    // q_cmd.joint1 = 
-    // if (q_state_buffer.size() > 3)
-    // {
+    if (!joint_cmd_subscriber->sub_init)
+        return;
+    q_cmd_callback_obj = joint_cmd_subscriber->callback();
+    if (!q_cmd_callback_obj.first)
+        return;
 
-    // }
+    auto now = std::chrono::high_resolution_clock::now();
+    double ms = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
     
+    q_cmd.time = ms;
+    q_cmd.joint1 = 2500 + q_cmd_callback_obj.second.joint1 / 180 * 2000;
+    q_cmd.joint2 = 2500 - (q_cmd_callback_obj.second.joint2 + 90) / 180 * 2000;
+    q_cmd.joint3 = 2500 - (q_cmd_callback_obj.second.joint3 + 90) / 180 * 2000;
+
     pulse_publisher->pub_msg(q_cmd);
 }

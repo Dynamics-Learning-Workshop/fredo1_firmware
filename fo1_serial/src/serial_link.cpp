@@ -40,6 +40,7 @@ static int pots_raw[3];
 static std::mutex pots_raw_mutex;
 static std::mutex pulse_raw_mutex;
 static std::mutex feedback_on_mutex;
+static std::pair<bool, fredo_msg> pulse_callback_obj;
 
 void serial_thread_func();
 
@@ -223,9 +224,7 @@ void serial_thread_func()
         }
         
         // 2. infer which set are we at. we will only reach here if there is sth in buffer
-        dt_ms = chrono_to_double(std::chrono::high_resolution_clock::now() - ctrl_lastrequest);
     
-
         if (!system_on && fsm != 0)
         {
             std::cout<<"FREDO1 STARTED...\n\n";
@@ -258,13 +257,17 @@ void serial_thread_func()
 
         case 1:
             // CTRL
-            input = "600-700-800\n";
-            pulse_raw_mutex.lock();
-            std::cout<<"hi" << std::endl;
-            std::cout << pulse_subscriber->data.time << std::endl;;
-            pulse_raw_mutex.unlock();
-            // do ctrl shit
-            write(fd, input.c_str(), input.size());
+            if (!pulse_subscriber->sub_init)
+                input = "1500-1500-1500\n";
+                continue;
+            
+            pulse_callback_obj = pulse_subscriber->callback();
+            
+            if (pulse_callback_obj.first)
+                input = std::to_string(int(pulse_callback_obj.second.joint1)) + "-" +
+                    std::to_string(int(pulse_callback_obj.second.joint2)) + "-" +
+                    std::to_string(int(pulse_callback_obj.second.joint3)) + "\n";
+
             break;
 
         case 2:
@@ -277,12 +280,11 @@ void serial_thread_func()
         default:
             break;
         }
-
-        if (dt_ms > 20 && system_on)
-        {
-            input = "1006\n";
+        
+        dt_ms = chrono_to_double(std::chrono::high_resolution_clock::now() - ctrl_lastrequest);
+        if (dt_ms > 20 && (fsm == 1 || fsm == 3))
+        {                        
             write(fd, input.c_str(), input.size());
-
             ctrl_lastrequest = std::chrono::high_resolution_clock::now();
         }             
     }
@@ -327,8 +329,7 @@ void pub_thread_func()
         fredo_msg msg_lala;
         // auto now = std::chrono::high_resolution_clock::now();
         auto now = std::chrono::high_resolution_clock::now();
-        auto duration_since_epoch = now.time_since_epoch();
-        double ms = chrono_to_double(std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch));
+        double ms = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
 
         msg_lala.time = ms;
         msg_lala.joint1 = pots_raw[0];

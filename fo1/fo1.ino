@@ -5,19 +5,19 @@ int fsm = 0;
 const int joint1_servo_pin = 9;
 const int joint1_feedback_pin = A0;
 float theta1 = 100;
-int joint1_pulse = 0;
+int joint1_pulse = 1500;
 Servo servo1;
 
 const int joint2_servo_pin = 10;
 const int joint2_feedback_pin = A1;
 float theta2 = 0;
-int joint2_pulse = 0;
+int joint2_pulse = 1500;
 Servo servo2;
 
 const int joint3_servo_pin = 11;
 const int joint3_feedback_pin = A2;
 float theta3 = 0;
-int joint3_pulse = 0;
+int joint3_pulse = 1500;
 Servo servo3;
 
 float system_lastrequest = 0;
@@ -48,11 +48,11 @@ void loop() {
     if (input_from_serial_link.toInt() == 7777)
     {
         servo1.attach(joint1_servo_pin);
-        servo1.writeMicroseconds(1500);
+        // servo1.writeMicroseconds(1500);
         servo2.attach(joint2_servo_pin);
-        servo2.writeMicroseconds(1500);
+        // servo2.writeMicroseconds(1500);
         servo3.attach(joint3_servo_pin);
-        servo3.writeMicroseconds(1500);
+        // servo3.writeMicroseconds(1500);
         fsm = 1;        
     }
     else if (input_from_serial_link.toInt() == 8888) 
@@ -87,12 +87,9 @@ void loop() {
         (millis() - ctrl_lastrequest) > 20 && (fsm == 1 || fsm == 3) 
     )
     {
-        // servo1.writeMicroseconds(joint1_pulse);
-        // servo2.writeMicroseconds(joint2_pulse);
-        // servo3.writeMicroseconds(joint3_pulse);  
-        servo1.writeMicroseconds(1500);
-        servo2.writeMicroseconds(1500);
-        servo3.writeMicroseconds(1500);  
+        servo1.writeMicroseconds(joint1_pulse);
+        servo2.writeMicroseconds(joint2_pulse);
+        servo3.writeMicroseconds(joint3_pulse);  
         ctrl_lastrequest = millis(); 
     }
 
