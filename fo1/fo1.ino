@@ -4,7 +4,7 @@ int fsm = 0;
 
 const int joint1_servo_pin = 9;
 const int joint1_feedback_pin = A0;
-float theta1 = 0;
+float theta1 = 100;
 int joint1_pulse = 0;
 Servo servo1;
 

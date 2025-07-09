@@ -7,10 +7,9 @@
 #define TWIN_MODE 1
 #define CALI_MODE 2
 
-
 struct fredo_msg{
-    double time;
-    double joint1;
-    double joint2;
-    double joint3;
+    double time = 0;
+    double joint1 = 0;
+    double joint2 = 0;
+    double joint3 = 0;
 };

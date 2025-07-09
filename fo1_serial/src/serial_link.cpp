@@ -32,13 +32,14 @@ double chrono_to_double(const std::chrono::nanoseconds time_chrono);
 bool is_digits(const std::string& s);
 
 static std::vector<double> message_from_down;
-static bool system_on = false;
+static bool system_on = false, feedback_on = false;
 static double dt_ms;
 static int t_ard_ms;
 static int fsm;
 static int pots_raw[3];
 static std::mutex pots_raw_mutex;
 static std::mutex pulse_raw_mutex;
+static std::mutex feedback_on_mutex;
 
 void serial_thread_func();
 
@@ -108,6 +109,10 @@ void joints_callback(const char buf[])
     std::string str(buf);         
     std::stringstream ss(str);           
     std::string token;
+
+    feedback_on_mutex.lock();
+    feedback_on = true;
+    feedback_on_mutex.unlock();
 
     while (std::getline(ss, token, '-')) 
     {
@@ -331,7 +336,10 @@ void pub_thread_func()
         msg_lala.joint3 = pots_raw[2];
         pots_raw_mutex.unlock(); 
         
-        feedback_advertiser->pub_msg(msg_lala);
+        feedback_on_mutex.lock();
+        if (feedback_on)
+            feedback_advertiser->pub_msg(msg_lala);
+        feedback_on_mutex.unlock();
         
         // pub raw at 200 Hz
         std::this_thread::sleep_for(std::chrono::milliseconds(5));  

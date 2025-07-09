@@ -21,7 +21,8 @@ static std::unique_ptr<com_util<fredo_msg>>
 volatile std::sig_atomic_t stop_flag;
 static fredo_msg raw_from_down;
 static std::mutex sub_mutex;
-static fredo_msg q_state, q_cmd;
+static fredo_msg q_state, q_state_prev, q_cmd;
+static double alpha = 0.1;
 static std::deque<fredo_msg> q_state_buffer;
 
 void mainloop();
@@ -49,47 +50,55 @@ void mainloop()
 {
     while (true)
     {
-        // std::cout<<1<<std::endl;
-        std::this_thread::sleep_for(std::chrono::milliseconds(100)); 
+        joint_deg_publisher->pub_msg(q_state);
         get_joint_deg();
-        
-        
-        // fredo_msg msg_lala;
-        // msg_lala.time = 100600;
-        // msg_lala.joint1 = 100;
-        // msg_lala.joint2 = 200;
-        // msg_lala.joint3 = 300;
-        
-        // pulse_publisher->pub_msg(msg_lala);
+        std::this_thread::sleep_for(std::chrono::milliseconds(10)); 
     }    
 }
 
 void get_joint_deg()
 {
-    sub_mutex.lock();
-
+    if (!feedback_subscriber->sub_init)
+        return;
     q_state = feedback_subscriber->callback();
-
-    // map q_cmd from pot_val to degree
-    // here....
-    // std::cout<<q_state.joint1<<std::endl;
-    // std::cout<<q_state.joint1 - 64.0<<std::endl;
-    // std::cout<<q_state.joint3<<std::endl<<std::endl;
-
+    
     q_state.joint1 = (-1) * ((q_state.joint1 - 64) / (604 - 64) * 180.0 * (-1) + 180.0);
     q_state.joint2 = (q_state.joint2 - 86) / (614 - 86) * 180.0 * (-1) + 90.0;
     q_state.joint3 = (q_state.joint3 - 44) / (600 - 44) * 180.0 * (-1) + 90.0;
 
-    // std::cout<<q_state.joint1<<std::endl;
-    // std::cout<<q_state.joint2<<std::endl;
-    // std::cout<<q_state.joint3<<std::endl<<std::endl;
-
+    
     // low pass filter here
     q_state_buffer.emplace_back(q_state);
-    
-    sub_mutex.unlock();
 
-    joint_deg_publisher->pub_msg(q_state);
+    // std::cout<<q_state_buffer.size()<<std::endl;
+
+    if (q_state_buffer.size() < 5)
+    {
+        q_state_prev = q_state;
+        return;
+    }
+            
+    if (q_state_buffer.size() > 5)
+        q_state_buffer.pop_front();
+
+    fredo_msg q_temp;
+    for (auto what : q_state_buffer)
+    {
+        q_temp.joint1 += what.joint1;
+        q_temp.joint2 += what.joint2;
+        q_temp.joint3 += what.joint3;
+    }
+
+    size_t buf_size = q_state_buffer.size();
+
+
+    q_state.joint1 = alpha * q_temp.joint1 / buf_size + (1 - alpha) * q_state_prev.joint1;
+    q_state.joint2 = alpha * q_temp.joint2 / buf_size + (1 - alpha) * q_state_prev.joint2;
+    q_state.joint3 = alpha * q_temp.joint3 / buf_size + (1 - alpha) * q_state_prev.joint3;
+
+    q_state_prev = q_state;
+       
+    // joint_deg_publisher->pub_msg(q_state);
 
 }
 

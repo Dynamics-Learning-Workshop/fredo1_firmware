@@ -140,14 +140,13 @@ void com_util<T>::set_subscriber()
             0,
             (sockaddr*)&clientAddr, &clientAddrLen
         );
-
         
-
         if (len == sizeof(T)) 
         {
             buffer_mutex.lock();
             data = buffer;
             buffer_mutex.unlock();
+            sub_init = true;
         }
     }
 }
@@ -155,6 +154,7 @@ void com_util<T>::set_subscriber()
 template<typename T>
 T com_util<T>::callback()
 {
+
     buffer_mutex.lock();
     T temp = buffer;
     buffer_mutex.unlock();

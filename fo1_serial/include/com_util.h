@@ -24,12 +24,12 @@ private:
     sockaddr_in clientAddr;
     socklen_t clientAddrLen;
     T buffer;
-
     std::mutex buffer_mutex;
 
 public:
     // objects
     T data;
+    bool sub_init = false;
 
     // funcs
     com_util(
