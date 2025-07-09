@@ -42,9 +42,9 @@ int main()
 
 void mainloop()
 {
-    const double step_deg = 0.5;  // degrees per step
+    const double step_deg = 1.2;  // degrees per step
     const int delay_ms = 25;
-    const double alpha = 0.1;
+    double alpha = 0.25;
 
     // Initialize joint angles
     q_cmd.joint1 = 0;
@@ -74,6 +74,8 @@ void mainloop()
         joint_cmd_publisher->pub_msg(q_cmd);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
     }
+
+    alpha = 1;
 
     // Sweep joint2: 0 → -90 → 90 → 0
     for (double j2 = 0; j2 >= -90.0; j2 -= step_deg) {
