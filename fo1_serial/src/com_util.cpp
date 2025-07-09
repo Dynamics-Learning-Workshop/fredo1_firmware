@@ -89,12 +89,12 @@ template<typename T>
 void com_util<T>::set_subscriber()
 {
     sock = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sock < 0) {
+    if (sock < 0) 
+    {
         std::cerr << "CREATING SOCKET FAILED" << std::endl;
         return;
     }
 
-    serverAddr;
     memset(&serverAddr, 0, sizeof(serverAddr));
     serverAddr.sin_family = AF_INET;
     serverAddr.sin_addr.s_addr = INADDR_ANY;

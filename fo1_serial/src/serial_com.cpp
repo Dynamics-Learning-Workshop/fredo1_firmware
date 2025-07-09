@@ -70,8 +70,6 @@ void get_joint_deg()
     // low pass filter here
     q_state_buffer.emplace_back(q_state);
 
-    // std::cout<<q_state_buffer.size()<<std::endl;
-
     if (q_state_buffer.size() < 5)
     {
         q_state_prev = q_state;
@@ -91,15 +89,11 @@ void get_joint_deg()
 
     size_t buf_size = q_state_buffer.size();
 
-
     q_state.joint1 = alpha * q_temp.joint1 / buf_size + (1 - alpha) * q_state_prev.joint1;
     q_state.joint2 = alpha * q_temp.joint2 / buf_size + (1 - alpha) * q_state_prev.joint2;
     q_state.joint3 = alpha * q_temp.joint3 / buf_size + (1 - alpha) * q_state_prev.joint3;
 
     q_state_prev = q_state;
-       
-    // joint_deg_publisher->pub_msg(q_state);
-
 }
 
 void set_joint_deg()
