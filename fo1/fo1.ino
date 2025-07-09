@@ -55,8 +55,13 @@ void loop() {
         servo3.writeMicroseconds(1500);
         fsm = 1;        
     }
-    else if (input_from_serial_link.toInt() == 8888)    
+    else if (input_from_serial_link.toInt() == 8888) 
+    {
+        servo1.detach();
+        servo2.detach();
+        servo3.detach();
         fsm = 0; // for exiting
+    }           
     else if (input_from_serial_link.toInt() == 9999)
     {
         fsm = 2; // for twinning only
@@ -93,7 +98,7 @@ void loop() {
 
     // this is for sending to upper floor
     if ( 
-        (millis() - system_lastrequest) > 10
+        (millis() - system_lastrequest) > 5
     )
     {
         output_to_serial_link = "";

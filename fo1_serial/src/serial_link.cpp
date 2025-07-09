@@ -48,8 +48,13 @@ static int mode;
 
 int main(int argc, char* argv[])
 {
-    bool lala = (std::string(argv[1]) == "TWIN");
-    std::cout << argv[1] << lala  << std::endl;
+    if (
+        argv[1] == nullptr || argv[1][0] == '\0'
+    ) 
+    {
+        std::cerr << "PLEASE ADVISE MODE!" << std::endl;
+        return 0;
+    }
     
     if (std::string(argv[1]) == "CTRL")
     {
@@ -68,7 +73,7 @@ int main(int argc, char* argv[])
     }
     else
     {
-        std::cerr << "PLS INPUT MODE" << std::endl;
+        std::cerr << "MODE NODE SUPPORTED...END" << std::endl;
         return 0;
     }
 
@@ -155,16 +160,16 @@ double chrono_to_double(const std::chrono::nanoseconds time_chrono)
 void serial_thread_func()
 {
     int fd = open("/dev/ttyACM0", O_RDWR | O_NOCTTY | O_NONBLOCK); 
-    if (fd == -1) {
-        std::cerr << "Failed to open serial port\n";
-        // return 1;
+    if (fd == -1) 
+    {
+        std::cerr << "SERIAL PORT OPENING FAILED" << std::endl;
     }
 
     termios tty{};
-    if (tcgetattr(fd, &tty) != 0) {
-        std::cerr << "Failed to get terminal attributes\n";
+    if (tcgetattr(fd, &tty) != 0) 
+    {
+        std::cerr << "TERMINAL ATTRIBUTES GET FAILED" << std::endl;
         close(fd);
-        // return 1;
     }
 
     cfsetispeed(&tty, B9600);
@@ -182,10 +187,10 @@ void serial_thread_func()
     tty.c_cflag &= ~CSTOPB;
     tty.c_cflag &= ~CRTSCTS;
 
-    if (tcsetattr(fd, TCSANOW, &tty) != 0) {
+    if (tcsetattr(fd, TCSANOW, &tty) != 0) 
+    {
         std::cout << "FAILED TO OPEN /DEV/TTYACM0..." << std::endl;
         close(fd);
-        // return 1;
     }
 
     char buf[100];
@@ -277,11 +282,9 @@ void serial_thread_func()
         }             
     }
 
-    int lala = 0;
+    // exit loop
     while (system_on)
-    {
-        lala ++;
-        
+    {        
         input = "8888\n";
         write(fd, input.c_str(), input.size());
 
@@ -323,19 +326,14 @@ void pub_thread_func()
         double ms = chrono_to_double(std::chrono::duration_cast<std::chrono::nanoseconds>(duration_since_epoch));
 
         msg_lala.time = ms;
-        msg_lala.pot_val_1 = pots_raw[0];
-        msg_lala.pot_val_2 = pots_raw[1];
-        msg_lala.pot_val_3 = pots_raw[2];
+        msg_lala.joint1 = pots_raw[0];
+        msg_lala.joint2 = pots_raw[1];
+        msg_lala.joint3 = pots_raw[2];
         pots_raw_mutex.unlock(); 
         
-        // std::cout<<message_str<<std::endl;
-        if (!feedback_advertiser->pub_msg(msg_lala)) 
-        {
-            std::cerr << "MSG SENT FAILED...EXITING" << std::endl;
-            break;
-        }
+        feedback_advertiser->pub_msg(msg_lala);
         
-        // try to control at 100 Hz
-        std::this_thread::sleep_for(std::chrono::milliseconds(10));  
+        // pub raw at 200 Hz
+        std::this_thread::sleep_for(std::chrono::milliseconds(5));  
     }        
 }

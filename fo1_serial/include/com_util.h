@@ -37,7 +37,7 @@ public:
         const int broadcast_port,
         int type_of_com
     );
-    bool pub_msg(const T& message);
+    void pub_msg(const T& message);
 
     void set_advertiser();
     void set_subscriber();

@@ -12,16 +12,16 @@ listen_port_(port)
 {
     using namespace std;
 
-    auto mainloop = [this]() mutable
-    {
-        while (true)
-        {
-            buffer_mutex.lock();
-            data = buffer;
-            // std::cout<<"hi"<<std::endl;
-            buffer_mutex.unlock();
-        }
-    };
+    // auto mainloop = [this]() mutable
+    // {
+    //     while (true)
+    //     {
+    //         buffer_mutex.lock();
+    //         data = buffer;
+    //         // std::cout<<"hi"<<std::endl;
+    //         buffer_mutex.unlock();
+    //     }
+    // };
 
     if (type_of_com == PUB)
         set_advertiser();
@@ -36,7 +36,7 @@ listen_port_(port)
 }
 
 template<typename T>
-bool com_util<T>::pub_msg(const T& message)
+void com_util<T>::pub_msg(const T& message)
 {
     ssize_t sent = sendto(
         sock,
@@ -48,9 +48,7 @@ bool com_util<T>::pub_msg(const T& message)
     );
 
     if (sent < 0)
-        return false;
-    else
-        return true;
+        throw std::runtime_error("MSG SENT PUB...EXITING");
 }
 
 template<typename T>
@@ -143,11 +141,13 @@ void com_util<T>::set_subscriber()
             (sockaddr*)&clientAddr, &clientAddrLen
         );
 
-        data = buffer;
+        
 
-        if (len == sizeof(T)) {
-            // Use buffer directly
-            // std::cout << "Received value: " << buffer.pot_val_1 << std::endl;  // works if T is printable
+        if (len == sizeof(T)) 
+        {
+            buffer_mutex.lock();
+            data = buffer;
+            buffer_mutex.unlock();
         }
     }
 }
@@ -155,6 +155,9 @@ void com_util<T>::set_subscriber()
 template<typename T>
 T com_util<T>::callback()
 {
-    return buffer;
+    buffer_mutex.lock();
+    T temp = buffer;
+    buffer_mutex.unlock();
+    return temp;
 }
 template class com_util<fredo_msg>;

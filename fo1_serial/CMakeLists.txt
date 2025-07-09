@@ -13,3 +13,8 @@ add_executable(serial_com
     src/serial_com.cpp
     src/com_util.cpp
 )
+
+add_executable(ctrl_test 
+    src/ctrl_test.cpp
+    src/com_util.cpp
+)
