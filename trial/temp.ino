@@ -1,3 +1,5 @@
+// gen by ChatGPT
+
 #include <Servo.h>
 
 Servo myServo;

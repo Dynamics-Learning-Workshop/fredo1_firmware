@@ -1,3 +1,4 @@
+// gen by ChatGPT
 const int servoPin = 11;
 const int servoAnalogOut = A0;  // Connect to the potentiometer's wiper
 

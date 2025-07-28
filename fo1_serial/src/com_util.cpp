@@ -192,7 +192,7 @@ std::pair<bool, T> com_util<T>::callback()
     using namespace std::chrono;
 
     buffer_mutex.lock();
-    T data = buffer;  // Ensure 'data' is declared
+    T data = buffer; 
     buffer_mutex.unlock();
 
     auto now = high_resolution_clock::now();

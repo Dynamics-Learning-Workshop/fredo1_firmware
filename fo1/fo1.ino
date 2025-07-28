@@ -28,16 +28,11 @@ float ctrl_lastrequest = 0;
 String input_from_serial_link;
 String output_to_serial_link;
 
-void setup() {
+void setup() 
+{
     system_lastrequest = millis();
     ctrl_lastrequest = millis();
     Serial.begin(9600);
-
-    // servo1.writeMicroseconds(1500);
-    // servo2.attach(joint2_servo_pin);
-    // servo2.writeMicroseconds(1500); 
-    // servo3.attach(joint3_servo_pin);
-    // servo3.writeMicroseconds(1500); 
 }
 
 void loop() {
@@ -48,11 +43,8 @@ void loop() {
     if (input_from_serial_link.toInt() == 7777)
     {
         servo1.attach(joint1_servo_pin);
-        // servo1.writeMicroseconds(1500);
         servo2.attach(joint2_servo_pin);
-        // servo2.writeMicroseconds(1500);
         servo3.attach(joint3_servo_pin);
-        // servo3.writeMicroseconds(1500);
         fsm = 1;        
     }
     else if (input_from_serial_link.toInt() == 8888) 

@@ -146,12 +146,16 @@ void joints_callback(const char buf[])
     return;
 }
 
-bool is_digits(const std::string& s) {
-    try {
+bool is_digits(const std::string& s) 
+{
+    try 
+    {
         size_t idx;
         std::stod(s, &idx);  // try parsing to double
         return idx == s.size(); // ensure full string was parsed
-    } catch (...) {
+    } 
+    catch (...) 
+    {
         return false;
     }
 }

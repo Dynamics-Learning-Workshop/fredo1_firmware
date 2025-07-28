@@ -1,33 +1,38 @@
+// gen by ChatGPT
 #include <Servo.h>
 
-Servo myServo;
+const int servoPin = 11;
+const int servoAnalogOut = A0;  // Connect to the potentiometer's wiper
 
-// Adjust these to your servo's specs
-const int minPulse = 500;    // microseconds for 0°
-const int maxPulse = 2500;   // microseconds for 270°
-
+Servo servo1;
 void setup() {
-  myServo.attach(9); // attach servo to pin 9
+  Serial.begin(9600);
+  servo1.attach(servoPin);
 }
 
 void loop() {
-  int angle = 0; // example angle 0 to 270
+  // Sweep forward: 500 to 2500 µs
+  for (int pulseWidth = 500; pulseWidth <= 2500; pulseWidth += 10) 
+  {    
+    servo1.writeMicroseconds(pulseWidth);
+    int potValue = analogRead(servoAnalogOut);
+    Serial.print("Pulse: ");
+    Serial.print(pulseWidth);
+    Serial.print(" µs | Pot Value: ");
+    Serial.println(potValue);
 
-  // // Map angle 0-270 to pulse width 500-2500 us
-  
-  
-  unsigned long start = millis();
+    delay(100);
+  }
 
-  int pulse = map(0, 0, 270, minPulse, maxPulse);
-  myServo.writeMicroseconds(pulse);
-  delay(15); // servo pulse refresh rate
+  // Sweep backward: 2500 to 500 µs
+  for (int pulseWidth = 2500; pulseWidth >= 500; pulseWidth -= 10) {
+    servo1.writeMicroseconds(pulseWidth);
+    int potValue = analogRead(servoAnalogOut);
+    Serial.print("Pulse: ");
+    Serial.print(pulseWidth);
+    Serial.print(" µs | Pot Value: ");
+    Serial.println(potValue);
 
-  pulse = map(270, 0, 270, minPulse, maxPulse);
-  myServo.writeMicroseconds(pulse);
-
-  unsigned long end = millis();
-  // Serial.println(end - start);
-  Serial.println(1);
-
-  delay(15); // servo pulse refresh rate
+    delay(100);
+  }
 }
