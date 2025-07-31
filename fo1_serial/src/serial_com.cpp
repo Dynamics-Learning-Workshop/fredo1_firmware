@@ -117,11 +117,11 @@ void set_joint_deg()
     q_cmd_callback_obj = joint_cmd_subscriber->callback();
     if (!q_cmd_callback_obj.first)
         return;
-    
+
     q_cmd.time = time_util::get_time();
     q_cmd.joint1 = 2500 + q_cmd_callback_obj.second.joint1 / 180 * 2000;
     q_cmd.joint2 = 2500 - (q_cmd_callback_obj.second.joint2 + 90) / 180 * 2000;
     q_cmd.joint3 = 2500 - (q_cmd_callback_obj.second.joint3 + 90) / 180 * 2000;
-
+    
     pulse_publisher->pub_msg(q_cmd);
 }

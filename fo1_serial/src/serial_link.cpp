@@ -214,6 +214,8 @@ void serial_thread_func()
         // 1. first process buffer from serial
         int n = read(fd, buf, sizeof(buf) - 1);
 
+        
+
         if (n > 0) 
         {
             buf[n] = 0;
@@ -262,8 +264,10 @@ void serial_thread_func()
         case 1:
             // CTRL
             if (!pulse_subscriber->sub_init)
+            {
                 input = "1500-1500-1500\n";
                 continue;
+            }
             
             pulse_callback_obj = pulse_subscriber->callback();
             
@@ -287,7 +291,7 @@ void serial_thread_func()
         
         dt_ms = chrono_to_double(std::chrono::high_resolution_clock::now() - ctrl_lastrequest);
         if (dt_ms > 20 && (fsm == 1 || fsm == 3))
-        {                        
+        {           
             write(fd, input.c_str(), input.size());
             ctrl_lastrequest = std::chrono::high_resolution_clock::now();
         }             

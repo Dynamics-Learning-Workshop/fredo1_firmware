@@ -43,9 +43,9 @@ int main()
 
 void mainloop()
 {
-    const double step_deg = 1.2;  // degrees per step
-    const int delay_ms = 25;
-    double alpha = 0.25;
+    const double step_deg = 2.0;  // degrees per step
+    const int delay_ms = 10;
+    double alpha = 0.2;
 
     // Initialize joint angles
     q_cmd.joint1 = 0;
@@ -55,7 +55,8 @@ void mainloop()
     fredo_msg q_cmd_prev = q_cmd;
 
     // Sweep joint1 from 0 to -180, then back to 0
-    for (double j1 = 0; j1 >= -180.0; j1 -= step_deg) {
+    for (double j1 = 0; j1 >= -180.0; j1 -= step_deg) 
+    {
         double target_joint1 = j1;
         q_cmd.joint1 = alpha * target_joint1 + (1.0 - alpha) * q_cmd_prev.joint1;
         q_cmd_prev.joint1 = q_cmd.joint1;
@@ -64,6 +65,7 @@ void mainloop()
         joint_cmd_publisher->pub_msg(q_cmd);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
     }
+
     for (double j1 = -180.0; j1 <= 0.0; j1 += step_deg) {
         double target_joint1 = j1;
         q_cmd.joint1 = alpha * target_joint1 + (1.0 - alpha) * q_cmd_prev.joint1;
