@@ -15,6 +15,17 @@
 #define SUB 0
 #define PUB 1
 
+namespace time_util
+{
+    inline double get_time()
+    {
+        auto now = std::chrono::high_resolution_clock::now();
+        return std::chrono::duration_cast<std::chrono::duration<double, std::milli>>(now.time_since_epoch()).count();
+    };
+
+}
+
+
 template<typename T>
 class com_util
 {

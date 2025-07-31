@@ -328,14 +328,10 @@ void pub_thread_func()
     while (!stop_flag)
     {
         pots_raw_mutex.lock();
-        // std::cout << "UDP LALA THREAD HERE"<<std::endl;
 
         fredo_msg msg_lala;
-        // auto now = std::chrono::high_resolution_clock::now();
-        auto now = std::chrono::high_resolution_clock::now();
-        double ms = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
 
-        msg_lala.time = ms;
+        msg_lala.time = time_util::get_time();
         msg_lala.joint1 = pots_raw[0];
         msg_lala.joint2 = pots_raw[1];
         msg_lala.joint3 = pots_raw[2];

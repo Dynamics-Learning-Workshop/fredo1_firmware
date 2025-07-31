@@ -60,8 +60,7 @@ void mainloop()
         q_cmd.joint1 = alpha * target_joint1 + (1.0 - alpha) * q_cmd_prev.joint1;
         q_cmd_prev.joint1 = q_cmd.joint1;
 
-        auto now = std::chrono::high_resolution_clock::now();
-        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        q_cmd.time = time_util::get_time();
         joint_cmd_publisher->pub_msg(q_cmd);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
     }
@@ -70,8 +69,7 @@ void mainloop()
         q_cmd.joint1 = alpha * target_joint1 + (1.0 - alpha) * q_cmd_prev.joint1;
         q_cmd_prev.joint1 = q_cmd.joint1;
 
-        auto now = std::chrono::high_resolution_clock::now();
-        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        q_cmd.time = time_util::get_time();
         joint_cmd_publisher->pub_msg(q_cmd);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
     }
@@ -83,9 +81,8 @@ void mainloop()
         double target_joint2 = j2;
         q_cmd.joint2 = alpha * target_joint2 + (1.0 - alpha) * q_cmd_prev.joint2;
         q_cmd_prev.joint2 = q_cmd.joint2;
-
-        auto now = std::chrono::high_resolution_clock::now();
-        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        
+        q_cmd.time = time_util::get_time();
         joint_cmd_publisher->pub_msg(q_cmd);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
     }
@@ -94,8 +91,7 @@ void mainloop()
         q_cmd.joint2 = alpha * target_joint2 + (1.0 - alpha) * q_cmd_prev.joint2;
         q_cmd_prev.joint2 = q_cmd.joint2;
 
-        auto now = std::chrono::high_resolution_clock::now();
-        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        q_cmd.time = time_util::get_time();
         joint_cmd_publisher->pub_msg(q_cmd);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
     }
@@ -104,8 +100,8 @@ void mainloop()
         q_cmd.joint2 = alpha * target_joint2 + (1.0 - alpha) * q_cmd_prev.joint2;
         q_cmd_prev.joint2 = q_cmd.joint2;
 
-        auto now = std::chrono::high_resolution_clock::now();
-        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        
+        q_cmd.time = time_util::get_time();
         joint_cmd_publisher->pub_msg(q_cmd);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
     }
@@ -116,8 +112,7 @@ void mainloop()
         q_cmd.joint3 = alpha * target_joint3 + (1.0 - alpha) * q_cmd_prev.joint3;
         q_cmd_prev.joint3 = q_cmd.joint3;
 
-        auto now = std::chrono::high_resolution_clock::now();
-        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        q_cmd.time = time_util::get_time();
         joint_cmd_publisher->pub_msg(q_cmd);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
     }
@@ -126,8 +121,7 @@ void mainloop()
         q_cmd.joint3 = alpha * target_joint3 + (1.0 - alpha) * q_cmd_prev.joint3;
         q_cmd_prev.joint3 = q_cmd.joint3;
 
-        auto now = std::chrono::high_resolution_clock::now();
-        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        q_cmd.time = time_util::get_time();
         joint_cmd_publisher->pub_msg(q_cmd);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
     }
@@ -136,8 +130,7 @@ void mainloop()
         q_cmd.joint3 = alpha * target_joint3 + (1.0 - alpha) * q_cmd_prev.joint3;
         q_cmd_prev.joint3 = q_cmd.joint3;
 
-        auto now = std::chrono::high_resolution_clock::now();
-        q_cmd.time = std::chrono::duration<double, std::milli>(now.time_since_epoch()).count();
+        q_cmd.time = time_util::get_time();
         joint_cmd_publisher->pub_msg(q_cmd);
         std::this_thread::sleep_for(std::chrono::milliseconds(delay_ms));
     }

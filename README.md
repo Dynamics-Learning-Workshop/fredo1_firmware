@@ -12,6 +12,7 @@ This is a repo storing the firmware of [FREDO1](https://github.com/Dynamics-Oper
 
 ## Prerequisites
 Please refer to [here](./install.md).
+
 ## Usage
 - To bootload the code into ```ARDUINO```, do 
     ```
